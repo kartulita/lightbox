@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Mark K Cowan
+# mark@battlesnake.co.uk
+
+set -euo pipefail
+
+declare shows_path=~/shows
+
+cd ~/.mozilla
+
+function get_session {
+	local show="$1"
+	local session="${shows_path}/${show}.tar.gz"
+	echo "${session}"
+}
+
+function list_sessions {
+	local session show
+	echo "Shows:"
+	for session in "${shows_path}/"*.tar.gz; do
+		show="$(basename "${session%.tar*}")"
+		echo " * ${show}"
+	done
+}
+
+function show_session {
+	local show="$1"
+	killall -u lightbox firefox || true
+	load_session "${show}"
+	firefox
+	clear_session
+}
+
+function edit_session {
+	local show="$1"
+	load_session "${show}"
+	firefox -safe-mode
+	save_session "${show}"
+	clear_session
+}
+
+function load_session {
+	local show="$1"
+	local session="$(get_session "${show}")"
+
+	if ! [ -f "${session}" ]; then
+		echo "ERROR: Show \"${show}\" not found"
+		exit 2
+	fi
+
+	clear_session
+
+	tar -xaf "${session}"
+}
+
+function save_session {
+	local show="$1"
+	local session="$(get_session "${show}")"
+
+	tar -caf "${session}" firefox
+}
+
+function delete_session {
+	local show="$1"
+	local session="$(get_session "${show}")"
+
+	if ! rm "${session}"; then
+		echo "Failed to delete session \"${show}\""
+		exit 3
+	fi
+}
+
+function clear_session {
+	rm -rf -- "firefox"
+}
+
+function show_help {
+	echo "./$(basename "$0") <command> [<param>]"
+	echo ""
+	echo "Commands:"
+	echo "  list - list sessions"
+	echo "  edit - edit session specified by <param>"
+	echo "  delete - delete session specified by <param>"
+	echo "  show - show session specified by <param>"
+	echo "  help - display this help"
+}
+
+if (( $# < 1 )); then
+	echo "ERROR: Syntax incorrect (call with command \"help\" for help)"
+	exit 1
+fi
+
+declare cmd="$1"
+shift
+
+case "${cmd#--}" in
+list) list_sessions;;
+edit) edit_session "$1";;
+delete) delete_session "$1";;
+run) ;;&
+show) show_session "$1";;
+help) show_help;;
+esac

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -euo pipefail
+
+declare date="$(date +%d%m)"
+
+declare show="default"
+
+if [ "${date}" == "0104" ]; then
+	show="april1"
+fi
+
+./slide-show show "${show}"
